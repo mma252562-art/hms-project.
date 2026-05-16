@@ -26,7 +26,8 @@ const getAll = async ({ status, patientId, page = 1, limit = 10 }) => {
 };
 
 const getById = async (id) => {
-  const bill = await prisma.bill.findUnique({ where: { id }, include: INCLUDE });
+  const billId = parseInt(id);
+  const bill = await prisma.bill.findUnique({ where: { id: billId }, include: INCLUDE });
   if (!bill) throw new Error('Bill not found');
   return bill;
 };
@@ -43,8 +44,8 @@ const create = async ({ patientId, appointmentId, items, discount = 0, tax = 0, 
 
   return prisma.bill.create({
     data: {
-      patientId,
-      appointmentId: appointmentId || null,
+      patientId: parseInt(patientId),
+      appointmentId: appointmentId ? parseInt(appointmentId) : null,
       subtotal,
       tax: taxAmt,
       discount: discountAmt,
@@ -64,10 +65,11 @@ const create = async ({ patientId, appointmentId, items, discount = 0, tax = 0, 
 };
 
 const updateStatus = async (id, { status }) => {
-  const bill = await prisma.bill.findUnique({ where: { id } });
+  const billId = parseInt(id);
+  const bill = await prisma.bill.findUnique({ where: { id: billId } });
   if (!bill) throw new Error('Bill not found');
   return prisma.bill.update({
-    where: { id },
+    where: { id: billId },
     data: { status, paidAt: status === 'PAID' ? new Date() : bill.paidAt },
     include: INCLUDE,
   });

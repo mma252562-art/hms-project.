@@ -40,7 +40,8 @@ const getAll = async ({ search, status, doctorId, patientId, date, page = 1, lim
 };
 
 const getById = async (id) => {
-  const appt = await prisma.appointment.findUnique({ where: { id }, include: { ...INCLUDE, bill: true } });
+  const apptId = parseInt(id);
+  const appt = await prisma.appointment.findUnique({ where: { id: apptId }, include: { ...INCLUDE, bill: true } });
   if (!appt) throw new Error('Appointment not found');
   return appt;
 };
@@ -48,31 +49,33 @@ const getById = async (id) => {
 const create = async (data) => {
   const { patientId, doctorId, scheduledAt, reason, notes, duration } = data;
 
-  const patient = await prisma.patient.findUnique({ where: { id: patientId } });
+  const patient = await prisma.patient.findUnique({ where: { id: parseInt(patientId) } });
   if (!patient || !patient.isActive) throw new Error('Patient not found or inactive');
 
-  const doctor = await prisma.doctor.findUnique({ where: { id: doctorId } });
+  const doctor = await prisma.doctor.findUnique({ where: { id: parseInt(doctorId) } });
   if (!doctor) throw new Error('Doctor not found');
 
   return prisma.appointment.create({
-    data: { patientId, doctorId, scheduledAt: new Date(scheduledAt), reason, notes, duration: parseInt(duration) || 30 },
+    data: { patientId: parseInt(patientId), doctorId: parseInt(doctorId), scheduledAt: new Date(scheduledAt), reason, notes, duration: parseInt(duration) || 30 },
     include: INCLUDE,
   });
 };
 
 const update = async (id, data) => {
-  const appt = await prisma.appointment.findUnique({ where: { id } });
+  const apptId = parseInt(id);
+  const appt = await prisma.appointment.findUnique({ where: { id: apptId } });
   if (!appt) throw new Error('Appointment not found');
   if (data.scheduledAt) data.scheduledAt = new Date(data.scheduledAt);
   if (data.duration !== undefined) data.duration = parseInt(data.duration) || 30;
   // Strip fields that shouldn't be sent to Prisma update
   const { id: _id, appointmentId: _aid, createdAt: _c, updatedAt: _u,
           patient: _p, doctor: _d, bill: _b, ...safeData } = data;
-  return prisma.appointment.update({ where: { id }, data: safeData, include: INCLUDE });
+  return prisma.appointment.update({ where: { id: apptId }, data: safeData, include: INCLUDE });
 };
 
 const cancel = async (id) => {
-  return prisma.appointment.update({ where: { id }, data: { status: 'CANCELLED' }, include: INCLUDE });
+  const apptId = parseInt(id);
+  return prisma.appointment.update({ where: { id: apptId }, data: { status: 'CANCELLED' }, include: INCLUDE });
 };
 
 const getUpcoming = async () => {

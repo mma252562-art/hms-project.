@@ -29,9 +29,14 @@ const getAll = async ({ search, page = 1, limit = 10 }) => {
   return { patients, total, page: parseInt(page), pages: Math.ceil(total / limit) };
 };
 
-const getById = async (id) => {
+const getById = async (idOrPatientId) => {
+  const id = parseInt(idOrPatientId);
+  const where = isNaN(id)
+    ? { patientId: idOrPatientId }
+    : { OR: [{ id }, { patientId: idOrPatientId }] };
+
   const patient = await prisma.patient.findFirst({
-    where: { OR: [{ id }, { patientId: id }], isActive: true },
+    where: { ...where, isActive: true },
     include: {
       appointments: {
         include: { doctor: { include: { user: { select: { firstName: true, lastName: true } }, specialization: true } } },
@@ -50,18 +55,20 @@ const create = async (data) => {
 };
 
 const update = async (id, data) => {
-  const patient = await prisma.patient.findUnique({ where: { id } });
+  const patientId = parseInt(id);
+  const patient = await prisma.patient.findUnique({ where: { id: patientId } });
   if (!patient || !patient.isActive) throw new Error('Patient not found');
   if (data.dateOfBirth) data.dateOfBirth = new Date(data.dateOfBirth);
   // Remove fields that shouldn't be updated directly
-  const { id: _id, patientId: _pid, createdAt: _c, ...safeData } = data;
-  return prisma.patient.update({ where: { id }, data: safeData });
+  const { id: _id, patientId: _pid, createdAt: _c, updatedAt: _u, ...safeData } = data;
+  return prisma.patient.update({ where: { id: patientId }, data: safeData });
 };
 
 const remove = async (id) => {
-  const patient = await prisma.patient.findUnique({ where: { id } });
+  const patientId = parseInt(id);
+  const patient = await prisma.patient.findUnique({ where: { id: patientId } });
   if (!patient) throw new Error('Patient not found');
-  return prisma.patient.update({ where: { id }, data: { isActive: false } });
+  return prisma.patient.update({ where: { id: patientId }, data: { isActive: false } });
 };
 
 module.exports = { getAll, getById, create, update, remove };

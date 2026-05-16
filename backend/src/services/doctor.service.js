@@ -35,8 +35,9 @@ const getAll = async ({ search, specialization, page = 1, limit = 10 }) => {
 };
 
 const getById = async (id) => {
+  const doctorId = parseInt(id);
   const doctor = await prisma.doctor.findUnique({
-    where: { id },
+    where: { id: doctorId },
     include: {
       user: { select: { id: true, email: true, firstName: true, lastName: true, phone: true } },
       specialization: true,
@@ -68,7 +69,7 @@ const create = async ({ email, password, firstName, lastName, phone, specializat
       role: 'DOCTOR',
       doctor: {
         create: {
-          specializationId,
+          specializationId: parseInt(specializationId),
           licenseNumber,
           experience: parseInt(experience) || 0,
           consultationFee: parseFloat(consultationFee) || 0,
@@ -81,7 +82,8 @@ const create = async ({ email, password, firstName, lastName, phone, specializat
 };
 
 const update = async (id, { firstName, lastName, phone, specializationId, experience, consultationFee, bio, isAvailable }) => {
-  const doctor = await prisma.doctor.findUnique({ where: { id }, include: { user: true } });
+  const doctorId = parseInt(id);
+  const doctor = await prisma.doctor.findUnique({ where: { id: doctorId }, include: { user: true } });
   if (!doctor) throw new Error('Doctor not found');
 
   // Only update user fields that are provided
@@ -95,20 +97,21 @@ const update = async (id, { firstName, lastName, phone, specializationId, experi
 
   // Only update doctor fields that are provided
   const doctorUpdate = {};
-  if (specializationId !== undefined) doctorUpdate.specializationId = specializationId;
+  if (specializationId !== undefined) doctorUpdate.specializationId = parseInt(specializationId);
   if (experience !== undefined) doctorUpdate.experience = parseInt(experience) || 0;
   if (consultationFee !== undefined) doctorUpdate.consultationFee = parseFloat(consultationFee) || 0;
   if (bio !== undefined) doctorUpdate.bio = bio;
   if (isAvailable !== undefined) doctorUpdate.isAvailable = isAvailable;
 
   return prisma.doctor.update({
-    where: { id },
+    where: { id: doctorId },
     data: doctorUpdate,
     include: { user: { select: { firstName: true, lastName: true, email: true, phone: true } }, specialization: true },
   });
 };
 
-const updateSchedule = async (doctorId, schedules) => {
+const updateSchedule = async (id, schedules) => {
+  const doctorId = parseInt(id);
   await prisma.schedule.deleteMany({ where: { doctorId } });
   await prisma.schedule.createMany({
     data: schedules.map(s => ({
